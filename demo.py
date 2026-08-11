@@ -5,6 +5,13 @@ import os
 import sys
 
 
+def first_value(*values):
+    for value in values:
+        if value not in (None, ""):
+            return value
+    return None
+
+
 def load_participants_from_file(path):
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -13,16 +20,25 @@ def load_participants_from_file(path):
     if not participants:
         participants = data.get("participants", [])
 
-    match_id = (
-        data.get("metadata", {}).get("matchId")
-        or data.get("info", {}).get("matchId")
-        or data.get("matchId")
-        or data.get("gameId")
-        or data.get("metadata", {}).get("gameId")
-        or os.path.splitext(os.path.basename(path))[0]
+    match_id = first_value(
+        data.get("metadata", {}).get("matchId"),
+        data.get("info", {}).get("matchId"),
+        data.get("matchId"),
+        data.get("gameId"),
+        data.get("metadata", {}).get("gameId"),
+        os.path.splitext(os.path.basename(path))[0],
     )
 
-    return participants, str(match_id)
+    game_version = first_value(
+        data.get("info", {}).get("game_version"),
+        data.get("metadata", {}).get("game_version"),
+        data.get("game_version"),
+        data.get("info", {}).get("gameVersion"),
+        data.get("metadata", {}).get("gameVersion"),
+        data.get("gameVersion"),
+    )
+
+    return participants, str(match_id), game_version
 
 
 def calculate_board_value(participant):
@@ -45,30 +61,72 @@ def calculate_board_value(participant):
     return total
 
 
-def participant_to_row(participant, match_id, row_id):
-    row = {"ID": row_id, "match_id": match_id}
+def get_comps(participant):
+    comps = []
+    for unit in participant.get("units", []) or []:
+        if not isinstance(unit, dict):
+            continue
+
+        items = unit.get("itemNames") or []
+        if not isinstance(items, list) or len(items) != 3:
+            continue
+
+        rarity = unit.get("rarity")
+        tier = unit.get("tier")
+        try:
+            rarity_val = int(rarity)
+        except (TypeError, ValueError):
+            rarity_val = None
+        try:
+            tier_val = int(tier)
+        except (TypeError, ValueError):
+            tier_val = None
+
+        if rarity_val is not None and tier_val is not None and rarity_val < 3 and tier_val < 3:
+            continue
+
+        character_name = unit.get("character_id")
+        if character_name is None:
+            continue
+
+        character_name = str(character_name)
+        if character_name.startswith("TFT17_"):
+            character_name = character_name[len("TFT17_"):]
+
+        comps.append(character_name)
+
+    return ", ".join(comps) if comps else None
+
+
+def participant_to_row(participant, match_id, game_version, row_id):
+    row = {"ID": row_id, "match_id": match_id, "game_version": game_version}
     for key, value in participant.items():
         if isinstance(value, (dict, list)):
             row[key] = json.dumps(value, ensure_ascii=False)
         else:
             row[key] = value
     row["board value"] = calculate_board_value(participant)
+    row["Comps"] = get_comps(participant)
     return row
 
 
 def main():
+    default_input_dir = r"C:\Users\enoch\OneDrive\文件\GIthub\Input"
+    default_output_file = r"C:\Users\enoch\OneDrive\文件\GIthub\Output\merged_output.csv"
+
     parser = argparse.ArgumentParser(
         description="Merge participants from multiple Riot JSON files into one CSV"
     )
     parser.add_argument(
         "inputs",
-        nargs="+",
-        help="Input JSON files (provide up to 10 files).",
+        nargs="*",
+        default=[default_input_dir],
+        help="Input JSON files or directories to process (defaults to the input folder).",
     )
     parser.add_argument(
         "-o",
         "--output",
-        default=r"C:\Users\enoch\OneDrive\文件\GIthub\Output\merged_output.csv",
+        default=default_output_file,
         help="Output CSV file path",
     )
 
@@ -97,11 +155,6 @@ def main():
         else:
             resolved_inputs.append(input_path)
 
-    # Enforce max 10 input files
-    if len(resolved_inputs) > 10:
-        print("More than 10 input files found; only the first 10 will be used.")
-        resolved_inputs = resolved_inputs[:10]
-
     rows = []
     row_id = 1
     for input_path in resolved_inputs:
@@ -109,12 +162,12 @@ def main():
             print(f"Skipping missing file: {input_path}", file=sys.stderr)
             continue
 
-        participants, match_id = load_participants_from_file(input_path)
+        participants, match_id, game_version = load_participants_from_file(input_path)
         if not participants:
             print(f"No participants found in {input_path}", file=sys.stderr)
             continue
         for participant in participants:
-            rows.append(participant_to_row(participant, match_id, row_id))
+            rows.append(participant_to_row(participant, match_id, game_version, row_id))
             row_id += 1
 
     if not rows:
