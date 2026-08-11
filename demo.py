@@ -27,6 +27,7 @@ def load_participants_from_file(path):
 
 def calculate_board_value(participant):
     rarity_value = {0: 1, 1: 2, 2: 3, 4: 4, 6: 5}
+    tier_multiplier = {1: 1, 2: 3, 3: 9}
     total = 0
     for unit in participant.get("units", []) or []:
         if not isinstance(unit, dict):
@@ -34,10 +35,11 @@ def calculate_board_value(participant):
         rarity = unit.get("rarity")
         tier = unit.get("tier", 0) or 0
         value = rarity_value.get(rarity)
-        if value is None:
+        multiplier = tier_multiplier.get(int(tier), 0)
+        if value is None or multiplier == 0:
             continue
         try:
-            total += int(value) * int(tier)
+            total += int(value) * multiplier
         except (TypeError, ValueError):
             continue
     return total
