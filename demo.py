@@ -8,11 +8,25 @@ import sys
 def load_participants_from_file(path):
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
-    return data.get("info", {}).get("participants", [])
+
+    participants = data.get("info", {}).get("participants", [])
+    if not participants:
+        participants = data.get("participants", [])
+
+    match_id = (
+        data.get("metadata", {}).get("matchId")
+        or data.get("info", {}).get("matchId")
+        or data.get("matchId")
+        or data.get("gameId")
+        or data.get("metadata", {}).get("gameId")
+        or os.path.splitext(os.path.basename(path))[0]
+    )
+
+    return participants, str(match_id)
 
 
-def participant_to_row(participant):
-    row = {}
+def participant_to_row(participant, match_id):
+    row = {"match_id": match_id}
     for key, value in participant.items():
         if isinstance(value, (dict, list)):
             row[key] = json.dumps(value, ensure_ascii=False)
@@ -72,12 +86,13 @@ def main():
         if not os.path.isfile(input_path):
             print(f"Skipping missing file: {input_path}", file=sys.stderr)
             continue
-        participants = load_participants_from_file(input_path)
+
+        participants, match_id = load_participants_from_file(input_path)
         if not participants:
             print(f"No participants found in {input_path}", file=sys.stderr)
             continue
         for participant in participants:
-            rows.append(participant_to_row(participant))
+            rows.append(participant_to_row(participant, match_id))
 
     if not rows:
         raise ValueError("No participants were found in the provided JSON files.")
