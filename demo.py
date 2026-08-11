@@ -63,6 +63,7 @@ def calculate_board_value(participant):
 
 def get_comps(participant):
     comps = []
+
     for unit in participant.get("units", []) or []:
         if not isinstance(unit, dict):
             continue
@@ -71,31 +72,71 @@ def get_comps(participant):
         if not isinstance(items, list) or len(items) != 3:
             continue
 
+        if "TFT_Item_ThiefsGloves" in items:
+            continue
+
         rarity = unit.get("rarity")
         tier = unit.get("tier")
+
         try:
             rarity_val = int(rarity)
         except (TypeError, ValueError):
             rarity_val = None
+
         try:
             tier_val = int(tier)
         except (TypeError, ValueError):
             tier_val = None
 
-        if rarity_val is not None and tier_val is not None and rarity_val < 3 and tier_val < 3:
-            continue
+        if rarity_val is not None and tier_val is not None:
+            if rarity_val < 3 and tier_val < 3:
+                continue
 
         character_name = unit.get("character_id")
         if character_name is None:
             continue
 
         character_name = str(character_name)
+
         if character_name.startswith("TFT17_"):
             character_name = character_name[len("TFT17_"):]
 
-        comps.append(character_name)
+        tier_prefix = {
+            1: "1★",
+            2: "2★",
+            3: "3★",
+            4: "4★",
+        }.get(tier_val, "")
+
+        comps.append(f"{tier_prefix}{character_name}")
 
     return ", ".join(comps) if comps else None
+
+
+def get_active_traits(participant):
+    active_traits = []
+
+    for trait in participant.get("traits", []) or []:
+        if not isinstance(trait, dict):
+            continue
+
+        try:
+            if int(trait.get("tier_current", 0) or 0) <= 0:
+                continue
+        except (TypeError, ValueError):
+            continue
+
+        name = trait.get("name")
+        if name is None:
+            continue
+
+        name = str(name)
+        if name.startswith("TFT17_"):
+            name = name[len("TFT17_"):]
+
+        active_traits.append(name)
+
+    return ", ".join(active_traits) if active_traits else None
 
 
 def participant_to_row(participant, match_id, game_version, row_id):
@@ -106,7 +147,8 @@ def participant_to_row(participant, match_id, game_version, row_id):
         else:
             row[key] = value
     row["board value"] = calculate_board_value(participant)
-    row["Comps"] = get_comps(participant)
+    row["comp"] = get_comps(participant)
+    row["Active Traits"] = get_active_traits(participant)
     return row
 
 
