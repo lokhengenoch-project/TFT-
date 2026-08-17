@@ -1,3 +1,58 @@
 select "riotIdGameName", AVG(total_damage_to_players) as Aggression, AVG(players_eliminated) as Board_strength, AVG("board value") as Board_value, AVG(placement) as placement, AVG(gold_left) as remaining_gold from "New"
 where "riotIdGameName" = 'スバルD' OR "riotIdGameName" = 'ACAD Dishsoap' OR "riotIdGameName" = 'VIT k3soju' OR "riotIdGameName" = 'VIT setsuko'
 group by "riotIdGameName"
+
+WITH player_stats AS (
+    SELECT 
+        "riotIdGameName", 
+        AVG(total_damage_to_players) AS aggression, 
+        AVG(players_eliminated) AS bot_strength, 
+        AVG("board value") AS bot_value, 
+        AVG(placement) AS placement, 
+        AVG(gold_left) AS remaining_gold 
+    FROM "New"
+    WHERE "riotIdGameName" IN ('スバルD', 'ACAD Dishsoap', 'VIT k3soju', 'VIT setsuko')
+    GROUP BY "riotIdGameName"
+)
+SELECT 'Aggression' AS metric,
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'スバルD' THEN aggression END), 2) AS "スバルD",
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'ACAD Dishsoap' THEN aggression END), 2) AS "ACAD Dishsoap",
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'VIT k3soju' THEN aggression END), 2) AS "VIT k3soju",
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'VIT setsuko' THEN aggression END), 2) AS "VIT setsuko"
+FROM player_stats
+
+UNION ALL
+
+SELECT 'Bot Strength',
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'スバルD' THEN bot_strength END), 2),
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'ACAD Dishsoap' THEN bot_strength END), 2),
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'VIT k3soju' THEN bot_strength END), 2),
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'VIT setsuko' THEN bot_strength END), 2)
+FROM player_stats
+
+UNION ALL
+
+SELECT 'Bot Value',
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'スバルD' THEN bot_value END), 2),
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'ACAD Dishsoap' THEN bot_value END), 2),
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'VIT k3soju' THEN bot_value END), 2),
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'VIT setsuko' THEN bot_value END), 2)
+FROM player_stats
+
+UNION ALL
+
+SELECT 'Placement',
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'スバルD' THEN placement END), 2),
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'ACAD Dishsoap' THEN placement END), 2),
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'VIT k3soju' THEN placement END), 2),
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'VIT setsuko' THEN placement END), 2)
+FROM player_stats
+
+UNION ALL
+
+SELECT 'Remaining Gold',
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'スバルD' THEN remaining_gold END), 2),
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'ACAD Dishsoap' THEN remaining_gold END), 2),
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'VIT k3soju' THEN remaining_gold END), 2),
+    ROUND(MAX(CASE WHEN "riotIdGameName" = 'VIT setsuko' THEN remaining_gold END), 2)
+FROM player_stats;
