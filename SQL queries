@@ -1,0 +1,3 @@
+select "riotIdGameName", AVG(total_damage_to_players) as Aggression, AVG(players_eliminated) as Board_strength, AVG("board value") as Board_value, AVG(placement) as placement, AVG(gold_left) as remaining_gold from "New"
+where "riotIdGameName" = 'スバルD' OR "riotIdGameName" = 'ACAD Dishsoap' OR "riotIdGameName" = 'VIT k3soju' OR "riotIdGameName" = 'VIT setsuko'
+group by "riotIdGameName"
