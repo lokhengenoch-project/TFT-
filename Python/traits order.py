@@ -151,6 +151,82 @@ def get_active_traits(participant):
     return ", ".join(name for name, _ in active_traits)
 
 
+def get_playstyle(participant):
+    level = participant.get("level", 0)
+    units = participant.get("units", []) or []
+    
+    # Rarity to cost mapping (from rarity_value in calculate_board_value)
+    rarity_to_cost = {0: 1, 1: 2, 2: 3, 4: 4, 6: 5}
+    
+    # Count different types of units
+    three_star_low_cost = 0  # 3★ units with cost ≤ 3
+    four_cost_units = 0
+    five_cost_units = 0
+    any_three_star = False
+    two_star_four_five_cost = 0  # 2★ units with cost 4 or 5
+    two_star_five_cost = 0  # 2★ units with cost 5
+    
+    for unit in units:
+        if not isinstance(unit, dict):
+            continue
+        
+        try:
+            tier = int(unit.get("tier", 0) or 0)
+            rarity = unit.get("rarity")
+            if rarity is None:
+                continue
+            cost = rarity_to_cost.get(rarity)
+            if cost is None:
+                continue
+        except (TypeError, ValueError):
+            continue
+        
+        # Check for 3★ units
+        if tier == 3:
+            any_three_star = True
+            if cost <= 3:
+                three_star_low_cost += 1
+        
+        # Check for 4-cost units
+        if cost == 4:
+            four_cost_units += 1
+        
+        # Check for 5-cost units
+        if cost == 5:
+            five_cost_units += 1
+        
+        # Check for 2★ 4-cost or 5-cost units
+        if tier == 2 and cost >= 4:
+            two_star_four_five_cost += 1
+        
+        # Check for 2★ 5-cost units
+        if tier == 2 and cost == 5:
+            two_star_five_cost += 1
+    
+    # Apply the playstyle logic
+    playstyles = []
+    
+    if three_star_low_cost >= 2:
+        playstyles.append("Reroll")
+    
+    if level >= 8 and four_cost_units >= 2:
+        playstyles.append("Fast 8")
+    
+    if level >= 9 and two_star_five_cost >= 2:
+        playstyles.append("Fast 9")
+    
+    if not any_three_star and two_star_four_five_cost == 0:
+        playstyles.append("Didn't Hit")
+    
+    # Flex logic: anything that doesn't fit above OR fits into more than 1 group
+    if len(playstyles) == 0:
+        return "Flex"
+    elif len(playstyles) > 1:
+        return "Flex"
+    else:
+        return playstyles[0]
+
+
 def participant_to_row(participant, match_id, game_version, row_id):
     row = {"ID": row_id, "match_id": match_id, "game_version": game_version}
     for key, value in participant.items():
@@ -161,6 +237,7 @@ def participant_to_row(participant, match_id, game_version, row_id):
     row["board value"] = calculate_board_value(participant)
     row["comp"] = get_comps(participant)
     row["Active Traits"] = get_active_traits(participant)
+    row["playstyle"] = get_playstyle(participant)
     return row
 
 
