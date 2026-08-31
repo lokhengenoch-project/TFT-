@@ -11,7 +11,8 @@ Goals
 First step is to get match data from Riot and convert it into a readable format. (Done)
 Also I need to calculate more variables that I will use later on. (board value, item count/value, comp, active traits) <-
 
-
+26/8 TFT set 18 is released on Unreal Engine
+However, some data is unavailable on their API (version, players_eliminated, total_damage_to_players).
 
 
 
