@@ -14,6 +14,6 @@ Also I need to calculate more variables that I will use later on. (board value, 
 26/8 TFT set 18 is released on Unreal Engine
 However, some data is unavailable on their API (version, players_eliminated, total_damage_to_players).
 
-
+28/09 Made a sample dashboard for data early in the set. Two problems were encountered (fast 9 logic, game id not continuous).
 
 
